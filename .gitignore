@@ -12,3 +12,5 @@ __pycache__/
 *.py[cod]
 .venv/
 venv/
+# Audio recordings (may contain real voice)
+*.wav
