@@ -7,6 +7,8 @@ from scipy.io.wavfile import write
 from gnani.stt import GnaniSTTClient
 from gnani.tts import GnaniTTSClient, AudioConfig
 
+from scenario1 import detect_move, new_call, step
+
 load_dotenv()
 
 MICROPHONE_ID = 3  # Headset (realme Buds Wireless 3) in the sounddevice list
@@ -73,47 +75,34 @@ def speak(text: str, out_path: str = "reply.wav") -> bool:
         return False
 
 
-def choose_reply(transcript: str) -> str:
-    """Pick the simulated scammer's next line from what the player said."""
-    text = transcript.lower().strip()
-
-    if not text:
-        return "Hello? Are you still there?"
-
-    if any(w in text for w in ("who are you", "proof", "call back", "1930", "hang up")):
-        return "Why so many questions? This is urgent. Answer me now."
-
-    if "otp" in text:
-        return "Good. Read the code to me right now."
-
-    return "Please listen carefully. This is an important call."
-
-
-MAX_TURNS = 3
+def say(line: str):
+    """Speak one scammer line and wait until the player has heard it."""
+    print("Scammer:", line)
+    if speak(line):
+        os.startfile("reply.wav")
+        input("Press Enter after the reply finishes playing...")
 
 
 def run_call():
     print("SIMULATION: this is a fake scam call for practice. All data is fake.")
     print("Say 'hang up' to end the call.\n")
 
-    for turn in range(1, MAX_TURNS + 1):
-        print(f"--- Turn {turn} of {MAX_TURNS} ---")
+    state = new_call()
+    say(state["line"])
+
+    while state["outcome"] is None:
         input("Press Enter, then speak for 5 seconds...")
         transcript = listen()
         print("You said:", repr(transcript))
 
-        if "hang up" in transcript.lower():
-            print("You hung up. Call ended.")
-            return
+        move = detect_move(transcript)
+        state = step(state, move)
+        print(f"  [move={move}, score={state['score']}]")
 
-        reply = choose_reply(transcript)
-        print("Scammer:", reply)
+        if state["outcome"] is None:
+            say(state["line"])
 
-        if speak(reply):
-            os.startfile("reply.wav")
-            input("Press Enter after the reply finishes playing...")
-
-    print("Call ended: you survived all turns.")
+    print(f"\nOutcome: {state['outcome']} | Score: {state['score']}")
 
 
 if __name__ == "__main__":

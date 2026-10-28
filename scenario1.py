@@ -20,6 +20,19 @@ NUMBER_WORDS = {"zero", "one", "two", "three", "four", "five",
 REFUSAL_WORDS = {"not", "never", "no", "refuse", "dont", "don't", "wont", "won't"}
 GOOD_MOVES = {"asked_proof", "callback", "helpline", "tell_family", "refused"}
 
+TIPS = {
+    "asked_proof": "Good: scammers dislike being questioned. Real officers can be verified.",
+    "callback": "Good: hang up and call back on an official number you look up yourself.",
+    "helpline": "Good: 1930 is India's cyber crime helpline. Report suspicious calls.",
+    "tell_family": "Good: scammers say 'tell no one' because outside advice breaks the spell.",
+    "refused": "Good: you can always refuse. No genuine agency needs your OTP or code.",
+    "hang_up": "Best move: ending the call is always allowed. 'Digital arrest' is not a real legal process.",
+    "shared_code": "Risky: never share an OTP or verification code with anyone who calls you.",
+    "complied": "Risky: going along with urgent demands is exactly what the caller wants.",
+    "silence": "Staying silent gives the caller room to pressure you. Hang up instead.",
+    "other": "Neutral: stay calm, and use the pause to verify before you answer.",
+}
+
 
 def detect_move(transcript: str) -> str:
     """Classify what the player just did. Returns a move label."""
@@ -52,11 +65,14 @@ def detect_move(transcript: str) -> str:
 
 
 def new_call() -> dict:
-    return {"beat": 0, "score": 100, "outcome": None, "line": BEATS[0]["line"]}
+    return {"beat": 0, "score": 100, "outcome": None,
+            "line": BEATS[0]["line"], "history": []}
 
 
 def step(state: dict, move: str) -> dict:
     """Apply one player move and return the updated state."""
+    state["history"].append(move)
+
     if move == "hang_up":
         state["outcome"] = "Hung up in time"
         state["line"] = ""
@@ -84,6 +100,14 @@ def step(state: dict, move: str) -> dict:
     return state
 
 
+def debrief(state: dict) -> list:
+    """Turn the call history into short feedback lines for the player."""
+    lines = []
+    for i, move in enumerate(state["history"], start=1):
+        lines.append(f"Turn {i} ({move}): {TIPS.get(move, TIPS['other'])}")
+    return lines
+
+
 if __name__ == "__main__":
     print("SIMULATION: fake call, all data is fake. Type what you would say.\n")
     state = new_call()
@@ -96,3 +120,6 @@ if __name__ == "__main__":
         if state["outcome"] is None:
             print("Scammer:", state["line"])
     print("\nOutcome:", state["outcome"], "| Score:", state["score"])
+    print("\n--- Debrief ---")
+    for line in debrief(state):
+        print(line)
